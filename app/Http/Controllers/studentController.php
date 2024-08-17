@@ -98,5 +98,34 @@ class studentController extends Controller
          return response()->json([$data, 'status' => 200]);
     }
 
+    public function delete ($id) {
+        // Validar que sea un numero
+        $validator = Validator::make(['id' => $id], [
+            'id' => 'required|numeric'
+        ]);
+
+        if($validator->fails()) {
+            return response()->json(['message' => 'Unespected error', 'status' => 400], 400);
+        }
+
+        // Intentar eliminar
+        try {
+            $data = DB::delete("
+                DELETE FROM student
+                WHERE id = ?
+            ", [$id]);
     
+            if($data) {
+                return response()->json(['message' => 'Deleted successfully!', 'status' => 203], 203);
+            } else {
+                return response()->json(['message' => 'Unespected error', 'status' => 404], 404);
+            }
+
+        } catch(\Exception $e) {
+            error_log('Database Error: ' . $e->getMessage());
+
+            return response()->json(['message' => 'Unespected server error', 'status' => 500], 500);
+        }
+    }
+
 }

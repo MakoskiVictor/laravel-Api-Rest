@@ -18,6 +18,4 @@ Route::put('/students/{id}', function ($id) {
     return "Student with id = $id updated";
 });
 
-Route::delete('/students/{id}', function ($id) {
-    return "student $id deleted";
-});
+Route::delete('/students/{id}', [studentController::class, 'delete']);
