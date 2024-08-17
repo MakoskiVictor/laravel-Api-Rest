@@ -35,10 +35,10 @@ class studentController extends Controller
     public function store (Request $request) {
         // Validamos los datos
         $validator = Validator::make($request->all(),[
-            'name' => 'required|max:50',
+            'name' => 'required|string|max:50',
             'email' => 'required|email|max:255',
             'phone' => 'required|numeric',
-            'language' => 'required|max:50'
+            'language' => 'required|string|max:50'
         ]);
         if($validator->fails()) {
             // Imprimir fallo en la consola del servidor
@@ -105,6 +105,8 @@ class studentController extends Controller
         ]);
 
         if($validator->fails()) {
+            // Imprimir en la consola
+            error_log('Validation failed ' . json_encode($validator->errors()->all()));
             return response()->json(['message' => 'Unespected error', 'status' => 400], 400);
         }
 
@@ -125,6 +127,46 @@ class studentController extends Controller
             error_log('Database Error: ' . $e->getMessage());
 
             return response()->json(['message' => 'Unespected server error', 'status' => 500], 500);
+        }
+    }
+
+    public function update (Request $request, $id) {
+        // Validación
+        $validator = Validator::make($request->all(), [
+            'name' => 'string|max:50',
+            'email' => 'email|max:255',
+            'phone' => 'numeric',
+            'language' => 'string|max:50',
+        ]);
+
+        if($validator->fails()) {
+            // Imprimir en la consola
+            error_log('Validation failed ' . json_encode($validator->errors()->all()));
+            return response()->json(['message' => 'Unexpected error', 'status' => 400]);
+        }
+
+        try {
+            $data = DB::update("
+                UPDATE student
+                SET name = ?, email = ?, phone = ?, language = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ", [
+                $request->input('name'),
+                $request->input('email'),
+                $request->input('phone'),
+                $request->input('language'),
+                $id
+            ]);
+    
+            if($data) {
+                return response()->json(['message' => 'Success', 'status' => 200], 200);
+            } else {
+                return response()->json(['message' => 'Error', 'status' => 400], 400);
+            }
+        } catch (\Exception $e) {
+            error_log('Database error: '.$e->getMessage());
+
+            return response()->json(['message' => 'Error', 'status' => 500], 500);
         }
     }
 
