@@ -10,9 +10,7 @@ use Illuminate\Support\Facades\Route;
 // })->middleware('auth:sanctum');
 Route::get('/students', [studentController::class, 'index']);
 
-Route::get('/students/{id}', function ($id) {
-    return "student with id = $id";
-});
+Route::get('/students/{id}', [studentController::class, 'getOne']);
 
 Route::post('/students', [studentController::class, 'store']);
 

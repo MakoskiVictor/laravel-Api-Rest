@@ -70,4 +70,33 @@ class studentController extends Controller
             return response()->json(['message' => 'Something went  wrong'], 500);
         }
     }
+
+    public function getOne ($id) {
+        $validator = Validator::make(['id'=>$id], [
+            'id' => 'required|numeric'
+        ]);
+        //echo(json_encode(($validator)));
+        // Si falla la validación
+        if($validator->fails()){
+            // Imprimir en la consola
+            error_log('Validation failed ' . json_encode($validator->errors()->all()));
+
+            // Retornar mensaje genérico
+            return response()->json(['message' => 'Something went wrong'], 400);
+        }
+
+        // Si pasa la validación
+        $data = DB::select(" 
+            SELECT * FROM student
+            WHERE id = ?
+         ", [$id]);
+
+         if(empty($data)) {
+            return response()->json(['message' => 'There is no Student'], 200);
+         }
+
+         return response()->json([$data, 'status' => 200]);
+    }
+
+    
 }
