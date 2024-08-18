@@ -133,10 +133,10 @@ class studentController extends Controller
     public function update (Request $request, $id) {
         // Validación
         $validator = Validator::make($request->all(), [
-            'name' => 'string|max:50',
-            'email' => 'email|max:255',
-            'phone' => 'numeric',
-            'language' => 'string|max:50',
+            'name' => 'required|string|max:50',
+            'email' => 'required|email|max:255',
+            'phone' => 'required|numeric',
+            'language' => 'required|string|max:50',
         ]);
 
         if($validator->fails()) {
@@ -166,6 +166,63 @@ class studentController extends Controller
         } catch (\Exception $e) {
             error_log('Database error: '.$e->getMessage());
 
+            return response()->json(['message' => 'Error', 'status' => 500], 500);
+        }
+    }
+
+    public function updateOne (Request $request, $id) {
+        // Validación
+        $validator = Validator::make($request->all(), [
+            'name' => 'string|max:50|nullable',
+            'email' => 'email|max:255|nullable',
+            'phone' => 'numeric|nullable',
+            'language' => 'string|max:50|nullable',
+        ]);
+
+        if($validator->fails()) {
+            return response()->json(['message' => 'Error', 'status' => 400]);
+        }
+
+        // Contruyo una query dinámica
+        $fields = [];
+        $values = [];
+
+        if($request->filled('name')) {
+            $fields[] = 'name = ?';
+            $values[] = $request->input('name');
+        }
+        if($request->filled('email')) {
+            $fields[] = 'email = ?';
+            $values[] = $request->input('email');
+        }
+        if($request->filled('phone')) {
+            $fields[] = 'phone = ?';
+            $values[] = $request->input('phone');
+        }
+        if($request->filled('language')) {
+            $fields[] = 'language = ?';
+            $values[] = $request->input('language');
+        }
+        if(count($fields) > 0) {
+            $fields[] = 'updated_at = CURRENT_TIMESTAMP';
+        }
+
+        // Se añade el id al final
+        $values[] = $id;
+
+        $query = "UPDATE student SET ".implode(', ', $fields) . " WHERE id = ?";
+
+        try {
+            $database = DB::update($query, $values);
+    
+            if($database) {
+                return response()->json(['message' => 'Student updated', 'status' => 200], 200);
+            } else {
+                error_log('Database error: ' . json_encode($database));
+                return response()->json(['message' => 'Error', 'status' => 404], 404);
+            }
+        } catch (\Exception $e) {
+            error_log('Database error: '.json_encode($e));
             return response()->json(['message' => 'Error', 'status' => 500], 500);
         }
     }

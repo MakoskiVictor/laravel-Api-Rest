@@ -16,4 +16,6 @@ Route::post('/students', [studentController::class, 'store']);
 
 Route::put('/students/{id}', [studentController::class, 'update']);
 
+Route::patch('/students/{id}', [studentController::class, 'updateOne']);
+
 Route::delete('/students/{id}', [studentController::class, 'delete']);
