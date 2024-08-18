@@ -6,6 +6,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 // Paquete de validaciones de Laravel
 use Illuminate\Support\Facades\Validator;
+// Respuestas genéricas
+use App\Helpers;
+use App\Helpers\ResponseHelper;
 
 class studentController extends Controller
 {
@@ -16,19 +19,10 @@ class studentController extends Controller
         ");
 
         if(empty($students)) {
-            $data = [
-                'message' => 'No hay estudiantes registrados',
-                'status' => 200
-            ];
-            return response()->json($data, 200);
+            return ResponseHelper::successResponseWithData($students, 'No students registered');
         }
 
-        $data = [
-            'students' => $students,
-            'status' => 200
-        ];
-
-        return response()->json($data, 200);
+        return ResponseHelper::successResponseWithData($students);
     }
 
     // Para almacenar un nuesvo student
@@ -45,29 +39,30 @@ class studentController extends Controller
             error_log('Validation failed: ' . json_encode($validator->errors()->all()));
 
             // Retornar mensage genérico
-            $data = [
-                'message' => 'Something went  wrong',
-                'status' => 400
-            ];
-            return response()->json($data, 400);
+            return ResponseHelper::errorResponse();
         }
 
         // Crear nuevo estudiante
-        $student = DB::insert("
-            INSERT INTO student (name, email, phone, language)
-            VALUES (?, ?, ?, ?)
-        ",[
-            $request->input('name'),
-            $request->input('email'),
-            $request->input('phone'),
-            $request->input('language'),
-        ]);
-
-        if($student) {
-            return response()->json(['message' => 'Student created successfully!'], 201);
-        } else {
-            error_log('Creation failed: Could not insert student into the database.');
-            return response()->json(['message' => 'Something went  wrong'], 500);
+        try {
+            $database = DB::transaction("
+                INSERT INTO student (name, email, phone, language)
+                VALUES (?, ?, ?, ?)
+            ",[
+                $request->input('name'),
+                $request->input('email'),
+                $request->input('phone'),
+                $request->input('language'),
+            ]);
+    
+            if($database) {
+                return ResponseHelper::successResponse('Success', 201);
+            } else {
+                error_log('Creation failed: Could not insert student into the database.');
+                return ResponseHelper::errorResponse();
+            }
+        } catch (\Exception $e) {
+            error_log('Database error: ' . json_encode($e));
+            return ResponseHelper::serverErrorResponse();
         }
     }
 
@@ -82,7 +77,7 @@ class studentController extends Controller
             error_log('Validation failed ' . json_encode($validator->errors()->all()));
 
             // Retornar mensaje genérico
-            return response()->json(['message' => 'Something went wrong'], 400);
+            return ResponseHelper::errorResponse();
         }
 
         // Si pasa la validación
@@ -92,10 +87,10 @@ class studentController extends Controller
          ", [$id]);
 
          if(empty($data)) {
-            return response()->json(['message' => 'There is no Student'], 200);
+            return ResponseHelper::notFoundResponse();
          }
 
-         return response()->json([$data, 'status' => 200]);
+         return ResponseHelper::successResponseWithData($data);
     }
 
     public function delete ($id) {
@@ -107,7 +102,7 @@ class studentController extends Controller
         if($validator->fails()) {
             // Imprimir en la consola
             error_log('Validation failed ' . json_encode($validator->errors()->all()));
-            return response()->json(['message' => 'Unespected error', 'status' => 400], 400);
+            return ResponseHelper::errorResponse();
         }
 
         // Intentar eliminar
@@ -118,15 +113,15 @@ class studentController extends Controller
             ", [$id]);
     
             if($data) {
-                return response()->json(['message' => 'Deleted successfully!', 'status' => 203], 203);
+                return ResponseHelper::successResponse();
             } else {
-                return response()->json(['message' => 'Unespected error', 'status' => 404], 404);
+                return ResponseHelper::errorResponse();
             }
 
         } catch(\Exception $e) {
             error_log('Database Error: ' . $e->getMessage());
 
-            return response()->json(['message' => 'Unespected server error', 'status' => 500], 500);
+            return ResponseHelper::serverErrorResponse();
         }
     }
 
@@ -142,7 +137,7 @@ class studentController extends Controller
         if($validator->fails()) {
             // Imprimir en la consola
             error_log('Validation failed ' . json_encode($validator->errors()->all()));
-            return response()->json(['message' => 'Unexpected error', 'status' => 400]);
+            return ResponseHelper::errorResponse();
         }
 
         try {
@@ -159,14 +154,14 @@ class studentController extends Controller
             ]);
     
             if($data) {
-                return response()->json(['message' => 'Success', 'status' => 200], 200);
+                return ResponseHelper::successResponseWithData($data);
             } else {
-                return response()->json(['message' => 'Error', 'status' => 400], 400);
+                return ResponseHelper::errorResponse();
             }
         } catch (\Exception $e) {
             error_log('Database error: '.$e->getMessage());
 
-            return response()->json(['message' => 'Error', 'status' => 500], 500);
+            return ResponseHelper::serverErrorResponse();
         }
     }
 
@@ -180,7 +175,7 @@ class studentController extends Controller
         ]);
 
         if($validator->fails()) {
-            return response()->json(['message' => 'Error', 'status' => 400]);
+            return ResponseHelper::errorResponse();
         }
 
         // Contruyo una query dinámica
@@ -216,14 +211,14 @@ class studentController extends Controller
             $database = DB::update($query, $values);
     
             if($database) {
-                return response()->json(['message' => 'Student updated', 'status' => 200], 200);
+                return ResponseHelper::successResponse();
             } else {
                 error_log('Database error: ' . json_encode($database));
-                return response()->json(['message' => 'Error', 'status' => 404], 404);
+                return ResponseHelper::errorResponse();
             }
         } catch (\Exception $e) {
             error_log('Database error: '.json_encode($e));
-            return response()->json(['message' => 'Error', 'status' => 500], 500);
+            return ResponseHelper::serverErrorResponse();
         }
     }
 
